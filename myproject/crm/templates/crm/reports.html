@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports & Analytics - PropCRM{% endblock %}
+
+{% block page_title %}Reports & Analytics{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
+        <p class="text-sm text-gray-500">Total Leads</p>
+        <p class="text-2xl sm:text-3xl font-bold text-blue-600 mt-1">{{ total_leads }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
+        <p class="text-sm text-gray-500">Total Deals</p>
+        <p class="text-2xl sm:text-3xl font-bold text-purple-600 mt-1">{{ total_deals }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
+        <p class="text-sm text-gray-500">Total Properties</p>
+        <p class="text-2xl sm:text-3xl font-bold text-green-600 mt-1">{{ total_properties }}</p>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
+        <h3 class="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Leads by Source</h3>
+        <div class="relative" style="height: 250px;">
+            <canvas id="sourceChart"></canvas>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
+        <h3 class="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Leads by Type</h3>
+        <div class="relative" style="height: 250px;">
+            <canvas id="typeChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Conversion Funnel -->
+<div class="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100 mb-6">
+    <h3 class="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Conversion Funnel</h3>
+    <div class="space-y-3">
+        {% for item in conversion_rates %}
+        <div class="flex items-center gap-2 sm:gap-4">
+            <span class="w-20 sm:w-32 text-sm font-medium text-gray-700 truncate">{{ item.status }}</span>
+            <div class="flex-1 h-6 sm:h-8 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-blue-500 rounded-full flex items-center justify-end pr-2" style="width: {% if item.rate > 0 %}{{ item.rate }}%{% else %}2%{% endif %}">
+                    {% if item.rate > 5 %}
+                    <span class="text-xs text-white font-medium hidden sm:inline">{{ item.count }} ({{ item.rate }}%)</span>
+                    {% endif %}
+                </div>
+            </div>
+            <span class="text-sm text-gray-500 flex-shrink-0">{{ item.count }} ({{ item.rate }}%)</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Property Types -->
+<div class="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
+    <h3 class="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Property Types Overview</h3>
+    <div class="overflow-x-auto">
+        <table class="w-full min-w-[400px]">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Count</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Avg Price</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for pt in property_type_data %}
+                <tr>
+                    <td class="px-4 py-3 font-medium">{{ pt.type }}</td>
+                    <td class="px-4 py-3">{{ pt.count }}</td>
+                    <td class="px-4 py-3">${{ pt.avg_price|floatformat:0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sourceCtx = document.getElementById('sourceChart');
+    if (sourceCtx) {
+        new Chart(sourceCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [{% for item in lead_source_data %}'{{ item.source }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+                datasets: [{
+                    data: [{% for item in lead_source_data %}{{ item.count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6B7280'],
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+
+    const typeCtx = document.getElementById('typeChart');
+    if (typeCtx) {
+        new Chart(typeCtx, {
+            type: 'pie',
+            data: {
+                labels: [{% for item in lead_type_data %}'{{ item.type }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+                datasets: [{
+                    data: [{% for item in lead_type_data %}{{ item.count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    backgroundColor: ['#3B82F6', '#10B981', '#F59E0B'],
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
